@@ -62,17 +62,26 @@ add_executable("vao"
 	"../source/SH3/system/window.cpp"
 )
 
+target_link_libraries("vao"
+#	PRIVATE FREETYPE
+#	PRIVATE FTGL
+	PRIVATE GLEW::GLEW
+	PRIVATE glm
+	PRIVATE OpenGL::GL
+	PRIVATE SDL2
+	PRIVATE ZLIB::ZLIB
+)
 
 add_executable("tex"
 	"tex.cpp"
-
+	
 	"../source/SH3/arc/file.cpp"
 	"../source/SH3/arc/section.cpp"
 	"../source/SH3/arc/types.cpp"
 	"../source/SH3/arc/vfile.cpp"
 	
 	"../source/SH3/graphics/texture.cpp"
-
+	
 	"../source/SH3/system/assert.cpp"
 	"../source/SH3/system/config.cpp"
 	"../source/SH3/system/glcontext.cpp"
@@ -83,7 +92,7 @@ add_executable("tex"
 	"../source/SH3/system/window.cpp"
 )
 
-target_link_libraries("vao"
+target_link_libraries("tex"
 #	PRIVATE FREETYPE
 #	PRIVATE FTGL
 	PRIVATE GLEW::GLEW
