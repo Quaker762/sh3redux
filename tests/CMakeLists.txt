@@ -62,6 +62,27 @@ add_executable("vao"
 	"../source/SH3/system/window.cpp"
 )
 
+
+add_executable("tex"
+	"tex.cpp"
+
+	"../source/SH3/arc/file.cpp"
+	"../source/SH3/arc/section.cpp"
+	"../source/SH3/arc/types.cpp"
+	"../source/SH3/arc/vfile.cpp"
+	
+	"../source/SH3/graphics/texture.cpp"
+
+	"../source/SH3/system/assert.cpp"
+	"../source/SH3/system/config.cpp"
+	"../source/SH3/system/glcontext.cpp"
+	"../source/SH3/system/glprogram.cpp"
+	"../source/SH3/system/glbuffer.cpp"
+	"../source/SH3/system/glvertarray.cpp"
+	"../source/SH3/system/log.cpp"
+	"../source/SH3/system/window.cpp"
+)
+
 target_link_libraries("vao"
 #	PRIVATE FREETYPE
 #	PRIVATE FTGL
