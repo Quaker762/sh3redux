@@ -71,12 +71,12 @@ int main(int argc, char** argv)
     Log(LogLevel::INFO, "===SILENT HILL 3 REDUX===");
     Log(LogLevel::INFO, "Copyright 2016-2017 Palm Studios\n");
 
-    sh3_window                         window(1024, 768, "sh3redux | texture test");
-    bool quit =                     	false;
-    SDL_Event                        	ev;
-    sh3_gl::program::load_error       	err;
-    sh3_gl::program                    prog("image", err);
-    sh3_arc                         	mft;
+    sh3_window window(1024, 768, "sh3redux | texture test");
+    bool quit = false;
+    SDL_Event ev;
+    sh3_gl::program::load_error err;
+    sh3_gl::program prog("image", err);
+    sh3_arc mft;
 
     mft.Load(); // Load the Master File Table
 
