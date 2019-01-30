@@ -12,6 +12,7 @@
 #include "SH3/system/log.hpp"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -32,10 +33,7 @@ CShader::CShader(const std::string& _name, const std::vector<ShaderAttribute>& _
 
 CShader::~CShader()
 {
-	if(!locked)
-		glDeleteProgram(programID);
-	else
-		Log(LogLevel::ERROR, "Cannot delete this shader (%s) while it is in use! Consider calling %s::Unbind() first!", name, name);
+	glDeleteProgram(programID);
 }
 
 CShader::LoadStatus CShader::Load()
@@ -75,7 +73,8 @@ CShader::LoadStatus CShader::Load()
 
 	sourceStream.close();
 
-	glShaderSource(vertShader, 1, vertSource.c_str(), nullptr);
+	const GLchar* vs_src = vertSource.c_str();
+	glShaderSource(vertShader, 1, &vs_src, nullptr);
 	glCompileShader(vertShader);
 	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &compStatus);
 	if(!compStatus)
@@ -89,7 +88,7 @@ CShader::LoadStatus CShader::Load()
 		glGetShaderInfoLog(vertShader, logSize, &logSize, log.data());
 
 		glDeleteShader(vertShader);
-		Log(LogLevel::ERROR, "glCompileShader(): Failed to compile shader! Reason: %s", log.c_str());
+		Log(LogLevel::ERROR, "glCompileShader(): Failed to compile vertex shader!\n---------------------------------------------------\n%s", log.c_str());
 
 		return CShader::LoadStatus::OPENGL_ERROR;
 	}
@@ -113,7 +112,8 @@ CShader::LoadStatus CShader::Load()
 	while(std::getline(sourceStream, line))
 		fragSource += line + "\n";
 
-	glShaderSource(fragShader, 1, vertSource.c_str(), nullptr);
+	const GLchar* fs_src = fragSource.c_str();
+	glShaderSource(fragShader, 1, &fs_src, nullptr);
 	glCompileShader(fragShader);
 	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &compStatus);
 	if(!compStatus)
@@ -127,7 +127,7 @@ CShader::LoadStatus CShader::Load()
 		glGetShaderInfoLog(fragShader, logSize, &logSize, log.data());
 
 		glDeleteShader(fragShader);
-		Log(LogLevel::ERROR, "glCompileShader(): Failed to compile shader! Reason: %s", log.c_str());
+		Log(LogLevel::ERROR, "glCompileShader(): Failed to compile fragment shader!\n-------------------------------------------------------------\n%s", log.c_str());
 
 		return CShader::LoadStatus::OPENGL_ERROR;
 	}
@@ -165,7 +165,6 @@ CShader::LoadStatus CShader::Load()
 		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logSize);
 		log.resize(logSize);
 		log.reserve(logSize);
-		glGetProgramiv(programID, logSize, &logSize, log.data());
 
 		glDeleteProgram(programID);
 		Log(LogLevel::ERROR, "glLinkProgram(): Failed to link shader! Reason: %s", log.c_str());
@@ -174,10 +173,15 @@ CShader::LoadStatus CShader::Load()
 		return CShader::LoadStatus::OPENGL_ERROR;
 	}
 
+	glDetachShader(programID, vertShader);
+	glDetachShader(programID, fragShader);
+	glDeleteShader(vertShader);
+	glDeleteShader(fragShader);
+
 	return CShader::LoadStatus::SUCCESS;
 }
 
-void CShader::Bind()
+void CShader::Bind() noexcept
 {
 	if(programID != SHADER_RESET)
 	{
@@ -186,12 +190,28 @@ void CShader::Bind()
 	}
 }
 
-void CShader::Unbind()
+void CShader::Unbind() noexcept
 {
 	locked = false;
 	glUseProgram(SHADER_RESET);
 }
 
+GLint CShader::GetUniformLoc(const std::string& name) const
+{
+	GLint 			ret;
+	const GLchar* 	str = name.c_str();
+
+	if(!locked)
+		Log(LogLevel::WARN, "Shader %s not locked! It is impossible to set a uniform!", this->name.c_str());
+
+	ret = glGetUniformLocation(programID, str);
+	if(ret == -1)
+	{
+		Log(LogLevel::ERROR, "Shader %s: Unable to find uniform %s!", this->name.c_str(), name.c_str());
+	}
+
+	return ret;
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -372,52 +392,62 @@ GLdouble CShader::GetUniformValue(const std::string& name)
 	return ret;
 }
 
-template<>
-glm::vec2 CShader::GetUniformValue(const std::string& name)
-{
-	GLint 		loc = GetUniformLoc(name);
-	glm::vec2	ret;
-
-	glGetUniformfv(programID, loc, &ret);
-	return ret;
-}
-
-template<>
-glm::vec3 CShader::GetUniformValue(const std::string& name)
-{
-	GLint 		loc = GetUniformLoc(name);
-	glm::vec3	ret;
-
-	glGetUniformfv(programID, loc, &ret);
-	return ret;
-}
-
-template<>
-glm::mat2 CShader::GetUniformValue(const std::string& name)
-{
-	GLint 		loc = GetUniformLoc(name);
-	glm::mat2	ret;
-
-	glGetUniformfv(programID, loc, &ret);
-	return ret;
-}
-
-template<>
-glm::mat3 CShader::GetUniformValue(const std::string& name)
-{
-	GLint 		loc = GetUniformLoc(name);
-	glm::mat3	ret;
-
-	glGetUniformfv(programID, loc, &ret);
-	return ret;
-}
-
-template<>
-glm::mat4 CShader::GetUniformValue(const std::string& name)
-{
-	GLint 		loc = GetUniformLoc(name);
-	glm::mat4	ret;
-
-	glGetUniformfv(programID, loc, &ret);
-	return ret;
-}
+//template<>
+//glm::vec2 CShader::GetUniformValue(const std::string& name)
+//{
+//	GLint 		loc = GetUniformLoc(name);
+//	GLfloat		tmp[2];
+//	glm::vec2	ret;
+//
+//	glGetUniformfv(programID, loc, tmp);
+//	ret = glm::make_vec2(&tmp);
+//	return ret;
+//}
+//
+//template<>
+//glm::vec3 CShader::GetUniformValue(const std::string& name)
+//{
+//	GLint 		loc = GetUniformLoc(name);
+//	GLfloat		tmp[3];
+//	glm::vec3	ret;
+//
+//	glGetUniformfv(programID, loc, &tmp);
+//	ret = glm::make_vec3(tmp);
+//	return ret;
+//}
+//
+//template<>
+//glm::mat2 CShader::GetUniformValue(const std::string& name)
+//{
+//	GLint 		loc = GetUniformLoc(name);
+//	GLfloat		tmp[4];
+//	glm::mat2	ret;
+//
+//	glGetUniformfv(programID, loc, &tmp);
+//	ret = glm::make_mat2(tmp);
+//	return ret;
+//}
+//
+//template<>
+//glm::mat3 CShader::GetUniformValue(const std::string& name)
+//{
+//	GLint 		loc = GetUniformLoc(name);
+//	GLfloat		tmp[9];
+//	glm::mat3	ret;
+//
+//	glGetUniformfv(programID, loc, &tmp);
+//	ret = glm::make_mat3(tmp);
+//	return ret;
+//}
+//
+//template<>
+//glm::mat4 CShader::GetUniformValue(const std::string& name)
+//{
+//	GLint 		loc = GetUniformLoc(name);
+//	GLfloat		tmp[16];
+//	glm::mat4	ret;
+//
+//	glGetUniformfv(programID, loc, &tmp);
+//	ret = glm::make_mat4(tmp);
+//	return ret;
+//}

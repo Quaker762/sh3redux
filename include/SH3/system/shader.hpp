@@ -120,10 +120,10 @@ public:
 	 * used in both vertex and fragment shaders. For the shaders this is a read-only variable.
 	 * See <a href=http://www.lighthouse3d.com/tutorials/glsl-12-tutorial/uniform-variables/>here</a> for more information
 	 */
-	GLint GetUniformLoc(const std::string& name){return glGetUniformLocation(programID, name.c_str());};
+	inline GLint GetUniformLoc(const std::string& name) const;
 
 	/**
-	 * Set a uniform in the shader given a data type, T.
+	 * Set a uniform in the shader given a data type, T
 	 *
 	 * @param name	Name of the uniform that we want to set in this shader.
 	 * @param T 	Type of uniform. View the specific function for this.
